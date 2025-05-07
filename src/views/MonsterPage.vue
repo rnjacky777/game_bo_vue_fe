@@ -15,11 +15,7 @@
             <tr v-for="monster in monsters" :key="monster.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 border-b border-gray-300 text-sm text-gray-800">{{ monster.id }}</td>
               <td class="px-6 py-4 border-b border-gray-300 text-sm text-gray-800">{{ monster.name }}</td>
-              <td class="px-6 py-4 border-b border-gray-300 text-sm">
-                <router-link :to="`/monster-reward-manage/${monster.id}`" class="text-blue-500 hover:underline">
-                  編輯
-                </router-link>
-              </td>
+              <td class="px-6 py-4 border-b border-gray-300 text-sm"></td>
             </tr>
           </tbody>
         </table>
