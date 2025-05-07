@@ -49,7 +49,7 @@
                 </div>
               </td>
               <td class="px-6 py-4 border-b border-gray-300 text-sm">
-                <button @click="removeDropItem(item.id)" class="text-red-500 hover:underline">
+                <button @click="removeDropItem(item.drop_id)" class="text-red-500 hover:underline">
                   刪除
                 </button>
               </td>
@@ -62,7 +62,7 @@
       <div class="mt-6">
         <h3 class="text-lg font-semibold mb-2 text-center">新增掉落物品</h3>
         <div class="flex flex-wrap gap-2 mx-auto max-w-fit">
-          <input v-model="newItemId" type="text" placeholder="輸入物品 ID"
+          <input v-model="newItemId" type="number" placeholder="輸入物品 ID"
             class="p-2 border border-gray-300 rounded w-48" />
           <input v-model="newProbability" type="number" min="0" max="100" placeholder="掉落機率"
             class="p-2 border border-gray-300 rounded w-32" />
@@ -82,7 +82,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getMonsterById, getMonsterDrops, addDropItem as apiAddDropItem, removeDropItem as apiRemoveDropItem, updateDropProbability } from '@/api/monster'
+import { getMonsterById, addMonsterDropItem as apiAddDropItem, removeDropItem as apiRemoveDropItem, updateDropProbability } from '@/api/monster'
 
 const searchMonsterId = ref('')
 const monster = ref(null)
@@ -107,15 +107,14 @@ const confirmUpdateProbability = async (item) => {
 const searchMonster = async () => {
   if (searchMonsterId.value) {
     const data = await getMonsterById(searchMonsterId.value)
-    console.log('data', data)
     if (data) {
-      console.log('is data', data)
       monster.value = {
         name: data.monster_name,
         id: data.monster_id
       }
       // 更新掉落物品
       dropItems.value = data.drop_pool.map(item => ({
+        drop_id:item.drop_id,
         id: item.item_id,
         name: item.item_name,
         probability: item.probability * 100,
@@ -132,19 +131,41 @@ const searchMonster = async () => {
 
 const addDropItem = async () => {
   if (newItemId.value && newProbability.value) {
-    await apiAddDropItem(monster.value.id, newItemId.value, newProbability.value)
-    const { data } = await getMonsterDrops(monster.value.id)
-    dropItems.value = data
+    const data = await apiAddDropItem(
+      monster.value.id,
+      newItemId.value,
+      newProbability.value / 100
+    )
+    console.log('Check data:', data)
+    dropItems.value.push({
+      drop_id:item.drop_id,
+      id: data.item_id,
+      name: data.item_name,
+      probability: data.probability * 100,
+      originalProbability: data.probability * 100,
+      edited: false
+    })
+
+    // 清空欄位
     newItemId.value = null
     newProbability.value = null
   }
+  console.log('Check dropItems:', dropItems.value)
+  console.log('目前 dropItems:', dropItems.value.map(i => i.id))
 }
 
-const removeDropItem = async (itemId) => {
-  await apiRemoveDropItem(monster.value.id, itemId)
-  const { data } = await getMonsterDrops(monster.value.id)
-  dropItems.value = data
+
+const removeDropItem = async (dropId) => {
+  try {
+    await apiRemoveDropItem(dropId)
+
+    // 從 dropItems.value 中移除該筆資料
+    dropItems.value = dropItems.value.filter(item => item.id !== dropId)
+  } catch (error) {
+    console.error('刪除失敗：', error)
+  }
 }
+
 
 </script>
 
