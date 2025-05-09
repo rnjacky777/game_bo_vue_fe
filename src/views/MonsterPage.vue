@@ -36,7 +36,7 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style>
 /* 設置固定的表格尺寸，並美化 */
 table {
   width: 100%; /* 表格寬度固定為 100% */

@@ -20,6 +20,14 @@
               掉落物管理
             </button>
           </li>
+          <li>
+            <button
+              class="w-full text-left hover:bg-gray-700 p-2 rounded"
+              @click="currentPage = 'ItemManage'"
+            >
+              物品管理
+            </button>
+          </li>
         </ul>
       </div>
   
@@ -34,12 +42,14 @@
   import { ref, computed } from 'vue'
   import MonsterPage from './views/MonsterPage.vue'
   import MonsterRewardManage from './views/MonsterRewardManage.vue'
+  import ItemManage from './views/ItemManage.vue'
   
   const currentPage = ref('monsterPage')
   
   const currentPageComponent = computed(() => {
     if (currentPage.value === 'monsterPage') return MonsterPage
     if (currentPage.value === 'monsterRewardManage') return MonsterRewardManage
+    if (currentPage.value === 'ItemManage') return ItemManage
     return null
   })
   </script>

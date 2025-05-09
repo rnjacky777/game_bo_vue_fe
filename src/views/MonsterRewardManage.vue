@@ -114,7 +114,7 @@ const searchMonster = async () => {
       }
       // 更新掉落物品
       dropItems.value = data.drop_pool.map(item => ({
-        drop_id:item.drop_id,
+        drop_id: item.drop_id,
         id: item.item_id,
         name: item.item_name,
         probability: item.probability * 100,
@@ -138,7 +138,7 @@ const addDropItem = async () => {
     )
     console.log('Check data:', data)
     dropItems.value.push({
-      drop_id:item.drop_id,
+      drop_id: data.drop_id,
       id: data.item_id,
       name: data.item_name,
       probability: data.probability * 100,
@@ -160,7 +160,7 @@ const removeDropItem = async (dropId) => {
     await apiRemoveDropItem(dropId)
 
     // 從 dropItems.value 中移除該筆資料
-    dropItems.value = dropItems.value.filter(item => item.id !== dropId)
+    dropItems.value = dropItems.value.filter(item => item.drop_id !== dropId)
   } catch (error) {
     console.error('刪除失敗：', error)
   }
