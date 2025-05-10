@@ -1,6 +1,6 @@
 <!-- AddItemModal.vue -->
 <template>
-    <div v-if="isOpen" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative">
             <h2 class="text-xl font-bold mb-4">新增道具</h2>
 
@@ -66,7 +66,7 @@ import { ref } from 'vue'
 import { addItemApi } from '@/api/item' // 根據你的實際 API 路徑修改
 
 const props = defineProps({
-    isOpen: Boolean,
+    visible: Boolean,
 })
 
 const emit = defineEmits(['close', 'submitted'])
