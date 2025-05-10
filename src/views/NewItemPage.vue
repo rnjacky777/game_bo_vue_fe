@@ -35,16 +35,16 @@
       <p>Page {{ currentPage }}</p>
       <div class="space-x-2">
         <button class="btn btn-sm" @click="prevPage" :disabled="currentPage === 1">Prev</button>
-        <button class="btn btn-sm" @click="nextPage" :disabled="!hasMore">Next</button>
+        <button class="btn btn-sm" @click="nextPage" :disabled="!lastId">Next</button>
       </div>
     </div>
 
     <!-- Add New -->
-    <button @click="isModalOpen = true" class="bg-green-500 text-white px-4 py-2 rounded">新增道具</button>
+    <button @click="AddItemOpen = true" class="bg-green-500 text-white px-4 py-2 rounded">新增道具</button>
 
     <!-- Modal components 可自訂 -->
-    <DetailModal :item="selectedItem" :visible="modalVisible" @close="modalVisible = false" />
-    <AddItemModal :isOpen="isModalOpen" @close="isModalOpen = false" @submitted="handleSubmit" />
+    <DetailModal :item="selectedItem" :visible="ItemDetailOpen" @close="ItemDetailOpen = false" />
+    <AddItemModal :visible="AddItemOpen" @close="AddItemOpen = false" @submitted="handleSubmit" />
     <EditModal :visible="isEditOpen" :itemData="selectedItem" @save="submitEditedItem" @close="isEditOpen = false" />
 
   </div>
@@ -57,19 +57,30 @@ import AddItemModal from '@/components/AddItemModal.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import EditModal from '@/components/EditModal.vue'
 
-const items = ref([])
+//Search
 const searchQuery = ref('')
+
+// Filter
 const filter = ref('')
 const filterOptions = ['weapon', 'material', 'armor']
+
+
+//Get item info
+const items = ref([])
 const currentPage = ref(1) //TO DO: page count 
 const lastId = ref(null)
 const prevId = ref(null)
-const hasMore = ref(true)
 const isPrev = ref(false)
-const isModalOpen = ref(false)
-const modalVisible = ref(false)
-const selectedItem = ref(null)
+
+//Modal control
+const AddItemOpen = ref(false)
+const ItemDetailOpen = ref(false)
 const isEditOpen = ref(false)
+
+//Detail
+const selectedItem = ref(null)
+
+
 const fetchItems = async () => {
   const isSearchMode = !!searchQuery.value
 
@@ -81,7 +92,6 @@ const fetchItems = async () => {
     lastId.value = null
     prevId.value = null
     currentPage.value = 1
-    hasMore.value = false
     return
   }
 
@@ -99,16 +109,16 @@ const fetchItems = async () => {
 
   const data = await getAllItems(params)
   items.value = data.item_data
-  hasMore = data.last_id || null
-  prevId.value = data.item_data?.[0]?.item_id ?? null
-  hasMore.value = !!lastId.value
+  lastId.value = data.last_id || null
+  const firstItemId = data.item_data?.[0]?.item_id ?? null
+  prevId.value = firstItemId !== null ? Math.max(firstItemId, 21) : null
   isPrev.value = false
   console.log(prevId.value)
 }
 
 
 const nextPage = () => {
-  if (hasMore.value) {
+  if (lastId.value) {
     currentPage.value++
     isPrev.value = false
     fetchItems()
@@ -130,8 +140,7 @@ const removeItem = async (id) => {
 
 const viewDetails = async (id) => {
   selectedItem.value = await getItemDetail(id)
-  modalVisible.value = true
-  // alert(JSON.stringify(detail, null, 2))
+  ItemDetailOpen.value = true
 }
 
 const editItem = async (id) => {
