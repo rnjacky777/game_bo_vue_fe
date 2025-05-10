@@ -2,8 +2,9 @@
   <div class="p-6 space-y-4">
     <!-- Search & Filter -->
     <div class="flex flex-wrap items-center gap-4">
-      <input v-model="searchQuery" type="text" placeholder="Search by ID" class="input input-bordered w-60"
-        @input="fetchItems" />
+      <input v-model="searchQuery" @keyup.enter="performSearch" type="text" placeholder="Search by ID" class="input input-bordered w-60"/>
+      <button @click="performSearch">搜尋</button>
+      <button @click="fetchItems" v-if="searchQuery">清除搜尋</button>
       <select v-model="filter" class="select select-bordered" @change="fetchItems">
         <option value="">All</option>
         <option v-for="opt in filterOptions" :key="opt" :value="opt">{{ opt }}</option>
@@ -80,21 +81,17 @@ const isEditOpen = ref(false)
 //Detail
 const selectedItem = ref(null)
 
+const performSearch = async () => {
+  if (!searchQuery.value) return
+
+  const data = await searchItem(searchQuery.value)
+  items.value = data ? [data] : []
+  lastId.value = null
+  prevId.value = null
+  currentPage.value = 1
+}
 
 const fetchItems = async () => {
-  const isSearchMode = !!searchQuery.value
-
-  if (isSearchMode) {
-    // 進入搜尋模式
-    const data = await searchItem(searchQuery.value)
-
-    items.value = data ? [data] : []
-    lastId.value = null
-    prevId.value = null
-    currentPage.value = 1
-    return
-  }
-
   // 分頁模式
   const params = {
     item_type: filter.value || undefined,

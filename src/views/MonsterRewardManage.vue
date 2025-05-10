@@ -82,7 +82,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getMonsterById, addMonsterDropItem as apiAddDropItem, removeDropItem as apiRemoveDropItem, updateDropProbability } from '@/api/monster'
+import { getMonsterById, addMonsterDropItem as apiAddDropItem, removeDropItem as apiRemoveDropItem, updateDropProbability } from '@/api/monster_reward'
 
 const searchMonsterId = ref('')
 const monster = ref(null)
