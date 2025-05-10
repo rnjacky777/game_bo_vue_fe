@@ -99,7 +99,7 @@ const fetchItems = async () => {
 
   const data = await getAllItems(params)
   items.value = data.item_data
-  hasMore = data.last_id || null
+  lastId.value = data.last_id || null
   prevId.value = data.item_data?.[0]?.item_id ?? null
   hasMore.value = !!lastId.value
   isPrev.value = false
