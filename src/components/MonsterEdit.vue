@@ -57,16 +57,14 @@ const submitChanges = () => {
 
 // 可選：欄位名稱對照（更友善 UI）
 const fieldLabels = {
+  monster_id: '怪物 ID',
   name: '名稱',
-  description: '描述',
-  item_type: '類型',
-  price: '價格',
-  rarity: '稀有度',
-  slot: '裝備欄位',
-  atk_bonus: '攻擊加成',
-  def_bonus: '防禦加成',
-  hp_restore: 'HP 回復',
-  mp_restore: 'MP 回復',
+  drop_pool_ids: '掉落池 ID',
+  hp: 'HP',
+  mp: 'MP',
+  atk: '攻擊',
+  spd: '速度',
+  def_: '防禦'
 }
 
 // 根據值自動選擇 input 類型

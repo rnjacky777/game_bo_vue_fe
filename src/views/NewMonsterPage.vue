@@ -1,11 +1,10 @@
 <template>
   <div class="p-6 space-y-4">
     <!-- Title -->
-    <h2 class="text-2xl font-bold">物品管理</h2>
+    <h2 class="text-2xl font-bold">怪物管理</h2>
     <!-- Search & Filter -->
     <div class="flex flex-wrap items-center gap-4">
-      <input v-model="searchQuery" @keyup.enter="performSearch" type="text" placeholder="Search by ID"
-        class="input input-bordered w-60" />
+      <input v-model="searchQuery" @keyup.enter="performSearch" type="text" placeholder="Search by ID" class="input input-bordered w-60"/>
       <button @click="performSearch">搜尋</button>
       <button @click="fetchItems" v-if="searchQuery">清除搜尋</button>
       <select v-model="filter" class="select select-bordered" @change="fetchItems">
@@ -17,19 +16,19 @@
 
     <!-- Object List -->
     <div class="space-y-2">
-      <div v-for="item in items" :key="item.item_id"
+      <div v-for="monster in monsters" :key="monster.monster_id"
         class="p-4 bg-white shadow rounded flex justify-between items-center">
         <div>
-          <p class="font-bold">{{ item.name }}</p>
-          <p class="text-sm text-gray-500">ID: {{ item.item_id }}</p>
+          <p class="font-bold">{{ monster.name }}</p>
+          <p class="text-sm text-gray-500">ID: {{ monster.monster_id }}</p>
         </div>
         <div class="flex gap-2">
-          <p class="text-sm text-gray-500">{{ item.description }}</p>
+          <p class="text-sm text-gray-500">{{ monster.drop_pool_ids }}</p>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-sm btn-outline" @click="viewDetails(item.item_id)">Details</button>
-          <button class="btn btn-sm btn-info" @click="editItem(item.item_id)">Edit</button>
-          <button class="btn btn-sm btn-error" @click="removeItem(item.item_id)">Delete</button>
+          <button class="btn btn-sm btn-outline" @click="viewDetails(monster.monster_id)">Details</button>
+          <button class="btn btn-sm btn-info" @click="editItem(monster.monster_id)">Edit</button>
+          <button class="btn btn-sm btn-error" @click="removeItem(monster.monster_id)">Delete</button>
         </div>
       </div>
     </div>
@@ -44,22 +43,22 @@
     </div>
 
     <!-- Add New -->
-    <button @click="AddItemOpen = true" class="bg-green-500 text-white px-4 py-2 rounded">新增道具</button>
+    <button @click="addMonsterOpen = true" class="bg-green-500 text-white px-4 py-2 rounded">新增怪物</button>
 
     <!-- Modal components 可自訂 -->
-    <ItemDetail :item="selectedItem" :visible="ItemDetailOpen" @close="ItemDetailOpen = false" />
-    <AddItemModal :visible="AddItemOpen" @close="AddItemOpen = false" @submitted="handleSubmit" />
-    <EditModal :visible="isEditOpen" :itemData="selectedItem" @save="submitEditedItem" @close="isEditOpen = false" />
+    <MonsterDetail :monster="selectedMonster" :visible="MonsterDetailOpen" @close="MonsterDetailOpen = false" />
+    <AddMonsterModal :visible="addMonsterOpen" @close="addMonsterOpen = false" @submitted="handleSubmit" />
+    <MonsterEdit :visible="isEditOpen" :itemData="selectedMonster" @save="submitEditedItem" @close="isEditOpen = false" />
 
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getAllItems, searchItem, deleteItemApi, getItemDetail, editItemApi } from '@/api/item'
-import AddItemModal from '@/components/AddItemModal.vue'
-import ItemDetail from '@/components/ItemDetail.vue'
-import EditModal from '@/components/EditModal.vue'
+import {getListMonsters,getMonsterDetail,searchMonster,editMonsterApi,deleteMonsterApi } from '@/api/monster'
+import AddMonsterModal from '@/components/AddMonsterModal.vue'
+import MonsterDetail from '@/components/MonsterDetail.vue'
+import MonsterEdit from '@/components/MonsterEdit.vue'
 
 //Search
 const searchQuery = ref('')
@@ -70,25 +69,25 @@ const filterOptions = ['weapon', 'material', 'armor']
 
 
 //Get item info
-const items = ref([])
+const monsters = ref([])
 const currentPage = ref(1) //TO DO: page count 
 const lastId = ref(null)
 const prevId = ref(null)
 const isPrev = ref(false)
 
 //Modal control
-const AddItemOpen = ref(false)
-const ItemDetailOpen = ref(false)
+const addMonsterOpen = ref(false)
+const MonsterDetailOpen = ref(false)
 const isEditOpen = ref(false)
 
 //Detail
-const selectedItem = ref(null)
+const selectedMonster = ref(null)
 
 const performSearch = async () => {
   if (!searchQuery.value) return
 
-  const data = await searchItem(searchQuery.value)
-  items.value = data ? [data] : []
+  const data = await searchMonster(searchQuery.value)
+  monsters.value = data ? [data] : []
   lastId.value = null
   prevId.value = null
   currentPage.value = 1
@@ -107,8 +106,8 @@ const fetchItems = async () => {
     params.next_id = lastId.value
   }
 
-  const data = await getAllItems(params)
-  items.value = data.item_data
+  const data = await getListMonsters(params)
+  monsters.value = data.monster_data
   lastId.value = data.last_id || null
   const firstItemId = data.item_data?.[0]?.item_id ?? null
   prevId.value = firstItemId !== null ? Math.max(firstItemId, 21) : null
@@ -134,31 +133,30 @@ const prevPage = () => {
 }
 
 const removeItem = async (id) => {
-  await deleteItemApi(id)
+  await deleteMonsterApi(id)
   fetchItems()
 }
 
 const viewDetails = async (id) => {
-  selectedItem.value = await getItemDetail(id)
-  ItemDetailOpen.value = true
+  selectedMonster.value = await getMonsterDetail(id)
+  MonsterDetailOpen.value = true
 }
 
 const editItem = async (id) => {
-  selectedItem.value = await getItemDetail(id)
+  selectedMonster.value = await getMonsterDetail(id)
   isEditOpen.value = true
 
 }
-const submitEditedItem = async (updatedItem) => {
+const submitEditedItem = async (updatedMonster) => {
   try {
-    console.log(updatedItem)
-    // 呼叫 editItemApi 更新物品
-    const response = await editItemApi(updatedItem.id, updatedItem)
+    console.log(updatedMonster)
+    const response = await editMonsterApi(updatedMonster.id, updatedMonster)
 
     if (response.status === 200) {
       // 更新本地物品列表
-      const index = items.value.findIndex(item => item.item_id === updatedItem.item_id)
+      const index = monsters.value.findIndex(monster => monster.monster_id === updatedMonster.monster_id)
       if (index !== -1) {
-        items.value[index] = updatedItem
+        monsters.value[index] = updatedMonster
       }
 
       alert('物品更新成功')
