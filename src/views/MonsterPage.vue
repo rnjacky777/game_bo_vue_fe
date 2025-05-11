@@ -1,24 +1,68 @@
 <template>
-  <div class="flex justify-center items-start min-h-screen">
-    <div class="p-4 w-full max-w-4xl">
-      <h1 class="text-3xl font-bold mb-4 text-center">怪物管理</h1>
-      <div class="overflow-x-auto">
-        <table class="w-full table-fixed border-separate border-spacing-0 border border-gray-300 rounded-lg shadow-lg">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="px-6 py-3 border-b border-gray-300 text-left text-sm font-semibold text-gray-700">怪物 ID</th>
-              <th class="px-6 py-3 border-b border-gray-300 text-left text-sm font-semibold text-gray-700">怪物名稱</th>
-              <th class="px-6 py-3 border-b border-gray-300 text-left text-sm font-semibold text-gray-700">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="monster in monsters" :key="monster.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 border-b border-gray-300 text-sm text-gray-800">{{ monster.id }}</td>
-              <td class="px-6 py-4 border-b border-gray-300 text-sm text-gray-800">{{ monster.name }}</td>
-              <td class="px-6 py-4 border-b border-gray-300 text-sm"></td>
-            </tr>
-          </tbody>
-        </table>
+  <div class="p-6 space-y-4">
+    <!-- Title -->
+    <h2 class="text-2xl font-bold">怪物管理</h2>
+    <!-- Search & Filter -->
+    <div class="flex flex-wrap items-center gap-4">
+      <input v-model="searchQuery" @keyup.enter="performSearch" type="text" placeholder="Search by ID"
+        class="input input-bordered w-60" />
+      <button @click="performSearch">搜尋</button>
+      <button @click="clearSearch" v-if="searchQuery">清除搜尋</button>
+      <select v-model="filter" class="select select-bordered" @change="fetchItems">
+        <option value="">All</option>
+        <option v-for="opt in filterOptions" :key="opt" :value="opt">{{ opt }}</option>
+      </select>
+      <button class="btn btn-primary" @click="openBulkAdd">Bulk Add (JSON)</button>
+    </div>
+
+    <!-- Object List -->
+    <div class="space-y-2">
+      <div v-for="monster in monsters" :key="monster.monster_id"
+        class="p-4 bg-white shadow rounded flex justify-between items-center">
+        <div>
+          <p class="font-bold">{{ monster.name }}</p>
+          <p class="text-sm text-gray-500">ID: {{ monster.monster_id }}</p>
+        </div>
+        <div class="flex gap-2">
+          <p class="text-sm text-gray-500">{{ monster.drop_pool_ids }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-sm btn-outline" @click="viewDetails(monster.monster_id)">Details</button>
+          <button class="btn btn-sm btn-info" @click="editItem(monster.monster_id)">Edit</button>
+          <button class="btn btn-sm btn-error" @click="removeItem(monster.monster_id)">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-4">
+      <p>Page {{ currentPage }}</p>
+      <div class="space-x-2">
+        <button class="btn btn-sm" @click="prevPage" :disabled="currentPage === 1">Prev</button>
+        <button class="btn btn-sm" @click="nextPage" :disabled="!lastId">Next</button>
+      </div>
+    </div>
+
+    <!-- Add New -->
+    <button @click="addMonsterOpen = true" class="bg-green-500 text-white px-4 py-2 rounded">新增怪物</button>
+
+    <!-- Modal components 可自訂 -->
+    <MonsterDetail :monster="selectedMonster" :visible="MonsterDetailOpen" @close="MonsterDetailOpen = false" />
+    <AddMonsterModal :visible="addMonsterOpen" @close="addMonsterOpen = false" @submitted="handleSubmit" />
+    <MonsterEdit :visible="isEditOpen" :itemData="selectedMonster" @save="submitEditedItem"
+      @close="isEditOpen = false" />
+    <!-- 確認刪除 Modal -->
+    <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div class="bg-white p-6 rounded shadow w-80">
+        <h3 class="text-lg font-bold mb-4">確認刪除怪物？</h3>
+        <label class="flex items-center mb-4">
+          <input type="checkbox" v-model="deletePoolChecked" class="mr-2">
+          <span>也刪除對應的 drop pool</span>
+        </label>
+        <div class="flex justify-end space-x-2">
+          <button class="btn btn-sm" @click="showConfirmModal = false">取消</button>
+          <button class="btn btn-sm btn-error" @click="confirmDelete">確認刪除</button>
+        </div>
       </div>
     </div>
   </div>
@@ -26,51 +70,161 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getMonsters } from '@/api/monster'  // 確保有對應的 API 函數
+import { getListMonsters, getMonsterDetail, searchMonster, editMonsterApi, deleteMonsterApi } from '@/api/monster'
+import AddMonsterModal from '@/components/AddMonsterModal.vue'
+import MonsterDetail from '@/components/MonsterDetail.vue'
+import MonsterEdit from '@/components/MonsterEdit.vue'
 
+//Search
+const searchQuery = ref('')
+
+// Filter
+const filter = ref('')
+const filterOptions = ['weapon', 'material', 'armor']
+
+
+//Get item info
 const monsters = ref([])
+const currentPage = ref(1) //TO DO: page count 
+const lastId = ref(null)
+const prevId = ref(null)
+const isPrev = ref(false)
 
-onMounted(async () => {
-  const { data } = await getMonsters()  // 從 API 取得怪物資料
-  monsters.value = data
+//Modal control
+const addMonsterOpen = ref(false)
+const MonsterDetailOpen = ref(false)
+const isEditOpen = ref(false)
+
+//Detail
+const selectedMonster = ref(null)
+
+//Delete
+const showConfirmModal = ref(false)
+const deleteTargetId = ref(null)
+const deletePoolChecked = ref(false)
+
+const performSearch = async () => {
+  if (!searchQuery.value) return
+
+  const data = await searchMonster(searchQuery.value)
+  monsters.value = data ? [data] : []
+  lastId.value = null
+  prevId.value = null
+  currentPage.value = 1
+}
+
+const fetchItems = async () => {
+  // 分頁模式
+  const params = {
+    item_type: filter.value || undefined,
+    limit: 20,
+  }
+
+  if (isPrev.value && prevId.value) {
+    params.prev_id = prevId.value
+  } else if (lastId.value) {
+    params.next_id = lastId.value
+  }
+
+  const data = await getListMonsters(params)
+  monsters.value = data.monster_data
+  lastId.value = data.last_id || null
+  const firstItemId = data.item_data?.[0]?.item_id ?? null
+  prevId.value = firstItemId !== null ? Math.max(firstItemId, 21) : null
+  isPrev.value = false
+  console.log(prevId.value)
+}
+
+
+const nextPage = () => {
+  if (lastId.value) {
+    currentPage.value++
+    isPrev.value = false
+    fetchItems()
+  }
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1 && prevId.value) {
+    currentPage.value--
+    isPrev.value = true
+    fetchItems()
+  }
+}
+
+const removeItem = (id) => {
+  deleteTargetId.value = id
+  deletePoolChecked.value = false
+  showConfirmModal.value = true
+}
+const clearSearch = () => {
+  searchQuery.value = ''
+  fetchItems()
+}
+const confirmDelete = async () => {
+  if (deleteTargetId.value !== null) {
+    await deleteMonsterApi(deleteTargetId.value, deletePoolChecked.value)
+    fetchItems()
+  }
+  showConfirmModal.value = false
+  deleteTargetId.value = null
+}
+
+const viewDetails = async (id) => {
+  selectedMonster.value = await getMonsterDetail(id)
+  MonsterDetailOpen.value = true
+}
+
+const editItem = async (id) => {
+  selectedMonster.value = await getMonsterDetail(id)
+  isEditOpen.value = true
+
+}
+const submitEditedItem = async (updatedMonster) => {
+  try {
+    console.log(updatedMonster)
+    const response = await editMonsterApi(updatedMonster.id, updatedMonster)
+
+    if (response.status === 200) {
+      // 更新本地物品列表
+      const index = monsters.value.findIndex(monster => monster.monster_id === updatedMonster.monster_id)
+      if (index !== -1) {
+        monsters.value[index] = updatedMonster
+      }
+
+      alert('物品更新成功')
+      isEditOpen.value = false // 關閉 Modal
+      fetchItems()
+    }
+  } catch (error) {
+    console.error(error)
+    alert('物品更新失敗')
+  }
+}
+const handleSubmit = async () => {
+  await fetchItems()
+}
+
+const openBulkAdd = async () => {
+  // const input = prompt('Paste JSON array of objects')
+  // try {
+  //   const json = JSON.parse(input)
+  //   await bulkAddItems(json)
+  //   fetchItems()
+  // } catch (e) {
+  //   alert('Invalid JSON')
+  // }
+}
+
+onMounted(() => {
+  fetchItems()
 })
 </script>
 
-<style>
-/* 設置固定的表格尺寸，並美化 */
-table {
-  width: 100%; /* 表格寬度固定為 100% */
-  table-layout: fixed; /* 固定列寬 */
-}
-th, td {
-  padding: 12px; /* 內邊距 */
-  text-align: left; /* 左對齊 */
-  border-bottom: 1px solid #e2e8f0; /* 下邊框 */
-}
-
-thead {
-  background-color: #f7fafc; /* 表頭背景顏色 */
-}
-
-tbody tr:hover {
-  background-color: #f4f4f4; /* 滑鼠懸停行的背景顏色 */
-}
-
-/* 設置單元格最小寬度 */
-th:nth-child(1), td:nth-child(1) {
-  width: 20%; /* 設定第一列寬度 */
-}
-
-th:nth-child(2), td:nth-child(2) {
-  width: 50%; /* 設定第二列寬度 */
-}
-
-th:nth-child(3), td:nth-child(3) {
-  width: 30%; /* 設定第三列寬度 */
-}
-
-.w-full {
-  max-width: 90%;  /* 設定最大寬度為 90% */
-  margin: 0 auto;  /* 使表格在頁面中居中 */
+<style scoped>
+.input,
+.select,
+.btn {
+  @apply border rounded px-3 py-2;
 }
 </style>

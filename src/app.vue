@@ -5,31 +5,35 @@
       <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
       <ul class="space-y-2">
         <li>
-          <button class="w-full text-left hover:bg-gray-700 p-2 rounded" @click="currentPage = 'monsterPage'">
-            怪物清單
-          </button>
-        </li>
-        <li>
-          <button class="w-full text-left hover:bg-gray-700 p-2 rounded" @click="currentPage = 'monsterRewardManage'">
+          <button class="w-full text-left p-2 rounded"
+            :class="[isActive('monsterRewardManage') ? 'bg-gray-700 text-yellow-300' : 'hover:bg-gray-700']"
+            @click="currentPage = 'monsterRewardManage'">
             掉落物管理
           </button>
         </li>
         <li>
-          <button class="w-full text-left hover:bg-gray-700 p-2 rounded" @click="currentPage = 'ItemManage'">
+          <button class="w-full text-left p-2 rounded"
+            :class="[isActive('ItemPage') ? 'bg-gray-700 text-yellow-300' : 'hover:bg-gray-700']"
+            @click="currentPage = 'ItemPage'">
             物品管理
           </button>
         </li>
         <li>
-          <button class="w-full text-left hover:bg-gray-700 p-2 rounded" @click="currentPage = 'NewItemPage'">
-            新物品管理
+          <button class="w-full text-left p-2 rounded"
+            :class="[isActive('MonsterPage') ? 'bg-gray-700 text-yellow-300' : 'hover:bg-gray-700']"
+            @click="currentPage = 'MonsterPage'">
+            怪物管理
           </button>
         </li>
         <li>
-          <button class="w-full text-left hover:bg-gray-700 p-2 rounded" @click="currentPage = 'Template'">
+          <button class="w-full text-left p-2 rounded"
+            :class="[isActive('Template') ? 'bg-gray-700 text-yellow-300' : 'hover:bg-gray-700']"
+            @click="currentPage = 'Template'">
             模板頁面
           </button>
         </li>
       </ul>
+
     </div>
 
     <!-- Main Content -->
@@ -41,21 +45,18 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import MonsterPage from './views/MonsterPage.vue'
 import MonsterRewardManage from './views/MonsterRewardManage.vue'
-import ItemManage from './views/ItemManage.vue'
+import MonsterPage from './views/MonsterPage.vue'
 // import Template from './views/Template.vue'
-import NewItemPage from './views/NewItemPage.vue'
+import ItemPage from './views/ItemPage.vue'
 
 const currentPage = ref('monsterPage')
-
+const isActive = (page) => currentPage.value === page
 const currentPageComponent = computed(() => {
-  if (currentPage.value === 'monsterPage') return MonsterPage
   if (currentPage.value === 'monsterRewardManage') return MonsterRewardManage
-  if (currentPage.value === 'ItemManage') return ItemManage
   if (currentPage.value === 'Template') return Template
-  if (currentPage.value === 'NewItemPage') return NewItemPage
+  if (currentPage.value === 'ItemPage') return ItemPage
+  if (currentPage.value === 'MonsterPage') return MonsterPage
   return null
 })
-  </script>
-  
+</script>

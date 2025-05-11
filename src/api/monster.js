@@ -19,4 +19,7 @@ export const editMonsterApi = (monster_id, data) => {
 }
 
 export const addMonsterApi = (item) => api.post('/monster/AddMonster', item);
-export const deleteMonsterApi = (id) => api.delete(`/monster/RemoveMonster/${id}`);
+export const deleteMonsterApi = (id, delete_pool = false) =>
+    api.delete(`/monster/RemoveMonster/${id}`, {
+        params: { delete_pool }
+    });

@@ -7,7 +7,7 @@
       <input v-model="searchQuery" @keyup.enter="performSearch" type="text" placeholder="Search by ID"
         class="input input-bordered w-60" />
       <button @click="performSearch">搜尋</button>
-      <button @click="fetchItems" v-if="searchQuery">清除搜尋</button>
+      <button @click="clearSearch" v-if="searchQuery">清除搜尋</button>
       <select v-model="filter" class="select select-bordered" @change="fetchItems">
         <option value="">All</option>
         <option v-for="opt in filterOptions" :key="opt" :value="opt">{{ opt }}</option>
@@ -147,6 +147,10 @@ const editItem = async (id) => {
   selectedItem.value = await getItemDetail(id)
   isEditOpen.value = true
 
+}
+const clearSearch = () => {
+  searchQuery.value = ''
+  fetchItems()
 }
 const submitEditedItem = async (updatedItem) => {
   try {
