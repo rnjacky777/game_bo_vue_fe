@@ -6,6 +6,7 @@ import path from 'path'
 import tailwindcss from 'tailwindcss';
 
 export default defineConfig({
+  base: '/bo/', 
   plugins: [
     vue(),
     tailwindcss(), // 將 Tailwind 插件放在這裡
