@@ -34,5 +34,5 @@ jobs:
 
       - name: Deploy to GCP VM
         run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" dist/ ${{ secrets.GCP_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/bo_fe
+          rsync -avz --delete -e "ssh -i ~/.ssh/github-actions -o StrictHostKeyChecking=no" dist/ ${{ secrets.GCP_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/bo_fe
 
