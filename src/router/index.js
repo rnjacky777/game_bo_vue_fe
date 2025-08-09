@@ -7,6 +7,11 @@ import EventPage from '../views/EventPage.vue'
 // import Template from '../views/Template.vue'
 import EventDetail from '../views/EventDetailPage.vue' // 可加上 event 詳情頁
 import ResultDetail from '../views/ResultDetailPage.vue'
+import CharTempPage from '../views/CharTempPage.vue'
+import CharTempDetailPage from '../views/CharTempDetailPage.vue'
+
+
+
 const routes = [
   { path: '/', redirect: '/monster' },
   { path: '/monster-reward', component: MonsterRewardManage },
@@ -14,8 +19,10 @@ const routes = [
   { path: '/item', component: ItemPage },
   { path: '/event', component: EventPage },
   { path: '/result/:id', component: ResultDetail, props: true },
-  // { path: '/template', component: Template },
   { path: '/event/:id', component: EventDetail, props: true }, // 新增事件詳情頁面
+  { path: '/char-temp', component: CharTempPage },
+  { path: '/char-temp/:id', component: CharTempDetailPage, props: true },
+  
 ]
 
 const router = createRouter({
