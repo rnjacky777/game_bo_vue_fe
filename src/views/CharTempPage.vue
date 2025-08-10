@@ -3,40 +3,40 @@
     <!-- Title -->
     <h2 class="text-2xl font-bold">角色模板管理</h2>
     <!-- Search & Filter -->
-    <div class="flex flex-wrap items-center gap-4">
-      <input
-        v-model="searchQuery"
-        @keyup.enter="performSearch"
-        type="text"
-        placeholder="Search by ID or Name"
-        class="input input-bordered w-60"
-      />
-      <button @click="performSearch" class="btn btn-sm btn-primary">搜尋</button>
-      <button @click="clearSearch" v-if="searchQuery" class="btn btn-sm">清除搜尋</button>
-      <!-- 篩選：可改成依照角色稀有度或其他欄位 -->
-      <select v-model="filter" class="select select-bordered" @change="fetchChars">
-        <option value="">全部稀有度</option>
-        <option v-for="opt in filterOptions" :key="opt" :value="opt">{{ opt }}</option>
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <select v-model="searchBy" class="select select-bordered w-32 flex-shrink-0">
+        <option value="id">ID 搜尋</option>
+        <option value="name">名稱搜尋</option>
       </select>
-      <button class="btn btn-primary" @click="openBulkAdd">批次新增 (JSON)</button>
+
+      <input v-model="searchQuery" @keyup.enter="performSearch" type="text"
+        :placeholder="searchBy === 'id' ? '請輸入 ID' : '請輸入名稱'"
+          class="input input-bordered w-48 max-w-full" />
+
+      <button @click="performSearch" :disabled="!searchQuery.trim()"
+        class="btn btn-sm btn-primary disabled:opacity-50 disabled:cursor-not-allowed">
+        搜尋
+      </button>
+
+      <button @click="clearSearch" v-if="searchQuery.trim()" class="btn btn-sm btn-outline">
+        清除搜尋
+      </button>
+
+      <button class="btn btn-primary ml-auto" @click="openBulkAdd">
+        批次新增 (JSON)
+      </button>
     </div>
 
     <!-- 角色列表 -->
     <div class="space-y-2">
-      <div
-        v-for="char in chars"
-        :key="char.id"
-        class="p-4 bg-white shadow rounded flex justify-between items-center"
-      >
+      <div v-for="char in chars" :key="char.id" class="p-4 bg-white shadow rounded flex justify-between items-center">
         <div>
           <p class="font-bold">{{ char.name }}</p>
           <p class="text-sm text-gray-500">ID: {{ char.id }}</p>
           <p class="text-sm text-gray-600">稀有度: {{ char.rarity }}</p>
         </div>
         <div class="flex gap-2">
-          <RouterLink :to="`/char-temp/${char.id}`" class="btn btn-sm btn-outline"
-            >詳細</RouterLink
-          >
+          <RouterLink :to="`/char-temp/${char.id}`" class="btn btn-sm btn-outline">詳細</RouterLink>
           <button class="btn btn-sm btn-info" @click="openDescription(char)">說明</button>
           <button class="btn btn-sm btn-error" @click="removeChar(char.id)">刪除</button>
         </div>
@@ -60,45 +60,29 @@
     </button>
 
     <!-- 說明 Modal -->
-    <div
-      v-if="selectedChar"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
+    <div v-if="selectedChar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded shadow-lg max-w-md w-full relative">
         <h2 class="text-xl font-bold mb-2">編輯 {{ selectedChar.name }} 的說明</h2>
 
-        <textarea
-          v-model="editedDescription"
-          rows="5"
-          class="w-full p-2 border rounded resize-none text-sm text-gray-700 mb-4"
-        ></textarea>
+        <textarea v-model="editedDescription" rows="5"
+          class="w-full p-2 border rounded resize-none text-sm text-gray-700 mb-4"></textarea>
 
         <div class="flex justify-end gap-2">
           <button class="btn btn-sm btn-outline" @click="selectedChar = null">取消</button>
           <button class="btn btn-sm btn-success" @click="saveDescription">確認修改</button>
         </div>
 
-        <button
-          class="absolute top-2 right-2 text-gray-500 hover:text-black"
-          @click="selectedChar = null"
-        >
+        <button class="absolute top-2 right-2 text-gray-500 hover:text-black" @click="selectedChar = null">
           ✖
         </button>
       </div>
     </div>
 
     <!-- 新增角色模板 Modal -->
-    <AddCharModal
-      :visible="addCharOpen"
-      @close="addCharOpen = false"
-      @submitted="handleSubmit"
-    />
+    <AddCharModal :visible="addCharOpen" @close="addCharOpen = false" @submitted="handleSubmit" />
 
     <!-- 確認刪除 Modal -->
-    <div
-      v-if="showConfirmModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-    >
+    <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div class="bg-white p-6 rounded shadow w-80">
         <h3 class="text-lg font-bold mb-4">確認刪除角色模板？</h3>
         <div class="flex justify-end space-x-2">
@@ -154,7 +138,7 @@ const saveDescription = async () => {
 const searchQuery = ref('')
 const filter = ref('')
 const filterOptions = [1, 2, 3, 4, 5] // 假設稀有度1~5
-
+const searchBy = ref('id')  // 預設為 id 搜尋
 // 角色資料
 const chars = ref([])
 const currentPage = ref(1)
@@ -170,11 +154,33 @@ const showConfirmModal = ref(false)
 const deleteTargetId = ref(null)
 
 const performSearch = async () => {
-  if (!searchQuery.value) return
+  if (!searchQuery.value) {
+    // 搜尋欄為空，改用原本方式載入全部或依條件篩選
+    await fetchChars()
+    return
+  }
 
-  const data = await searchCharTemplate(searchQuery.value)
-  chars.value = data ? [data] : []
-  lastId.value = null
+  const params = {}
+
+  if (searchBy.value === 'id') {
+    // 只允許數字 ID，非數字則不搜尋或提示
+    if (!/^\d+$/.test(searchQuery.value.trim())) {
+      alert('請輸入有效的數字ID')
+      return
+    }
+    params.id = Number(searchQuery.value.trim())
+  } else {
+    params.name = searchQuery.value.trim()
+  }
+
+  // 如果有其他篩選條件也加進 params，像 rarity
+  if (filter.value) {
+    params.rarity = filter.value
+  }
+
+  const data = await getCharTemplates(params)
+  chars.value = data.char_temp_list || []
+  lastId.value = data.last_id || null
   prevId.value = null
   currentPage.value = 1
 }
@@ -220,9 +226,9 @@ const removeChar = (id) => {
   showConfirmModal.value = true
 }
 
-const clearSearch = () => {
+const clearSearch = async () => {
   searchQuery.value = ''
-  fetchChars()
+  await fetchChars()
 }
 
 const confirmDelete = async () => {

@@ -68,9 +68,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getCharTempDetail, updateCharTempField } from '@/api/char_temp'
+import { getCharTempDetail, updateCharTempField, updateCharTempBaseAttr } from '@/api/char_temp'
 import ModalCard from '@/components/common/ModalCard.vue'
 import BaseAttrModal from '@/components/chartemp_modals/BaseAttrModal.vue'
 import SkillModal from '@/components/chartemp_modals/SkillModal.vue'
@@ -91,14 +91,14 @@ const showBaseAttrModal = ref(false)
 const showSkillModal = ref(false)
 const showGrowthModal = ref(false)
 
-onMounted(fetchCharTempDetail)
+onMounted(() => fetchCharTempDetail())
 
-async function fetchCharTempDetail() {
+const fetchCharTempDetail = async () => {
   charTemp.value = await getCharTempDetail(route.params.id)
   resetEditPayload()
 }
 
-function resetEditPayload() {
+const resetEditPayload = () => {
   editPayload.value = {
     name: charTemp.value.name,
     rarity: charTemp.value.rarity,
@@ -108,34 +108,46 @@ function resetEditPayload() {
   }
 }
 
-function startEdit() {
+const startEdit = () => {
   isEditing.value = true
 }
 
-async function saveEdit() {
-  // call api to update
+const saveBaseAttr = async (payload) => {
+  try {
+    await updateCharTempBaseAttr(route.params.id, payload)
+    await fetchCharTempDetail()
+    showBaseAttrModal.value = false
+    // message.success('基礎屬性更新成功')
+  } catch (err) {
+    console.error(err)
+    // message.error('更新失敗')
+  }
+}
+
+const saveEdit = async () => {
   await updateCharTempField(route.params.id, { ...editPayload.value })
   await fetchCharTempDetail()
   isEditing.value = false
 }
 
-function cancelEdit() {
+const cancelEdit = () => {
   resetEditPayload()
   isEditing.value = false
 }
 
-function openBaseAttrModal() {
+const openBaseAttrModal = () => {
   showBaseAttrModal.value = true
 }
 
-function openSkillModal() {
+const openSkillModal = () => {
   showSkillModal.value = true
 }
 
-function openGrowthModal() {
+const openGrowthModal = () => {
   showGrowthModal.value = true
 }
 </script>
+
 
 
 <style scoped>

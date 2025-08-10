@@ -4,13 +4,14 @@ import api from './base';
 
 /**
  * 取得角色模板列表（含分頁資訊）
- * @param {Object} params - 篩選參數，例如 rarity, limit, next_id
- * @returns {Promise<{ last_id: number|null, char_temp_list: Array<{id: number, name: string}> },>} 分頁資料和角色模板陣列
+ * @param {Object} params - 篩選參數，例如 id, name, limit, next_id, prev_id
+ * @returns {Promise<{ last_id: number|null, char_temp_list: Array<{id: number, name: string, rarity?: number}> }>} 分頁資料和角色模板陣列
  */
 export const getCharTemplates = async (params = {}) => {
   const res = await api.get('/char-templates', { params });
-  return res.data;  // 回傳 { last_id, char_list }
+  return res.data; // 回傳 { last_id, char_temp_list }
 };
+
 
 
 /**
@@ -59,30 +60,38 @@ export const deleteCharTemplate = async (id) => {
 };
 
 /**
- * 編輯角色模板（完整更新）
+ * 編輯角色模板（一般資訊 - 局部更新）
  * @param {number|string} id
- * @param {Object} payload - 更新的完整資料
- */
-export const editCharTemplate = async (id, payload) => {
-  const res = await api.put(`/char-templates/${id}`, payload);
-  return res.data;
-};
-/**
- * 編輯角色模板（完整更新）
- * @param {number|string} id
- * @param {Object} payload - 更新的完整資料
- */
-export const updateCharTempBaseAttr = async (id, payload) => {
-  const res = await api.put(`/char-templates/${id}`, payload);
-  return res.data;
-};
-
-/**
- * 編輯角色模板（完整更新）
- * @param {number|string} id
- * @param {Object} payload - 更新的完整資料
+ * @param {Object} payload - 要更新的欄位（可部分）
  */
 export const updateCharTempField = async (id, payload) => {
-  const res = await api.put(`/char-templates/${id}`, payload);
+  const res = await api.patch(`/char-templates/info/${id}`, payload);
   return res.data;
 };
+// /**
+//  * 編輯角色模板（完整更新）
+//  * @param {number|string} id
+//  * @param {Object} payload - 更新的完整資料
+//  */
+// export const updateCharTempBaseAttr = async (id, payload) => {
+//   const res = await api.put(`/char-templates/${id}`, payload);
+//   return res.data;
+// };
+/**
+ * 編輯角色模板（基礎數值 - 局部更新）
+ * @param {number|string} id
+ * @param {Object} payload - 要更新的欄位（可部分）
+ */
+export const updateCharTempBaseAttr = async (id, payload) => {
+  const res = await api.patch(`/char-templates/stats/${id}`, payload);
+  return res.data;
+};
+// /**
+//  * 編輯角色模板（完整更新）
+//  * @param {number|string} id
+//  * @param {Object} payload - 更新的完整資料
+//  */
+// export const updateCharTempField = async (id, payload) => {
+//   const res = await api.put(`/char-templates/${id}`, payload);
+//   return res.data;
+// };

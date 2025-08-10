@@ -35,9 +35,13 @@ const fields = [
   { key: 'base_def', label: '防禦', type: 'number' }
 ]
 
-const form = reactive({ ...props.charTemp })
+// 只複製基礎屬性欄位
+const form = reactive(fields.reduce((acc, f) => {
+  acc[f.key] = props.charTemp[f.key] ?? 0
+  return acc
+}, {}))
 
-function save() {
+const save = () => {
   emit('save', { ...form })
 }
 </script>
