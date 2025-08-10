@@ -1,68 +1,37 @@
 <template>
   <div class="p-4 space-y-4">
-    <h2 class="text-2xl font-bold mb-4">角色模板詳情</h2>
+    <h2 class="text-2xl font-bold">角色模板詳情</h2>
 
-    <div v-if="charTemp" class="space-y-4">
-      <p><strong>ID:</strong> {{ charTemp.id }}</p>
+    <!-- Loading State -->
+    <div v-if="isLoading" class="text-center py-10">
+      <p class="text-gray-500">載入中...</p>
+    </div>
+
+    <!-- Content -->
+    <div v-else-if="charTemp" class="space-y-4">
+      <p class="text-sm text-gray-500">ID: {{ charTemp.id }}</p>
 
       <!-- 名稱與稀有度編輯 -->
-      <div class="bg-gray-50 p-4 rounded shadow">
-        <div v-if="!isEditing">
-          <p><strong>名稱:</strong> {{ charTemp.name }}</p>
-          <p><strong>稀有度:</strong> {{ charTemp.rarity }}</p>
-          <p><strong>描述:</strong> {{ charTemp.description || '無' }}</p>
-          <p><strong>小圖:</strong></p>
-          <div v-if="charTemp.image_sm_url">
-            <img :src="charTemp.image_sm_url" alt="小圖" class="max-w-xs max-h-40 object-contain" />
-          </div>
-          <div v-else>無</div>
-
-          <p><strong>大圖:</strong></p>
-          <div v-if="charTemp.image_lg_url">
-            <img :src="charTemp.image_lg_url" alt="大圖" class="max-w-xs max-h-40 object-contain" />
-          </div>
-          <div v-else>無</div>
-          <button @click="startEdit" class="btn-primary mt-2">編輯</button>
-        </div>
-        <div v-else class="space-y-3">
-          <div>
-            <label class="text-gray-600 text-sm">名稱:</label>
-            <input v-model="editPayload.name" type="text" class="input w-full" placeholder="請輸入名稱" />
-          </div>
-          <div>
-            <label class="text-gray-600 text-sm">稀有度:</label>
-            <input v-model.number="editPayload.rarity" type="number" class="input w-full" placeholder="請輸入稀有度" />
-          </div>
-          <div>
-            <label class="text-gray-600 text-sm">描述:</label>
-            <textarea v-model="editPayload.description" class="input w-full" placeholder="請輸入描述"></textarea>
-          </div>
-          <div>
-            <label class="text-gray-600 text-sm">小圖 URL:</label>
-            <input v-model="editPayload.image_sm_url" type="text" class="input w-full" placeholder="請輸入小圖 URL" />
-          </div>
-          <div>
-            <label class="text-gray-600 text-sm">大圖 URL:</label>
-            <input v-model="editPayload.image_lg_url" type="text" class="input w-full" placeholder="請輸入大圖 URL" />
-          </div>
-          <div class="flex justify-end gap-2 mt-2">
-            <button @click="saveEdit" class="btn-green">儲存</button>
-            <button @click="cancelEdit" class="btn-gray">取消</button>
-          </div>
-        </div>
-      </div>
+      <CharTempInfoCard :char-temp="charTemp" @updated="fetchCharTempDetail" />
 
       <!-- 功能卡片 -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-        <ModalCard title="編輯基礎屬性" desc="修改角色模板的基礎數值" @click="openBaseAttrModal" />
-        <ModalCard title="技能" desc="檢視與編輯技能" @click="openSkillModal" />
-        <ModalCard title="屬性成長" desc="檢視與編輯屬性成長" @click="openGrowthModal" />
+        <ModalCard title="編輯基礎屬性" desc="修改角色模板的基礎數值" @click="openModal('baseAttr')" />
+        <ModalCard title="技能" desc="檢視與編輯技能" @click="openModal('skill')" />
+        <ModalCard title="屬性成長" desc="檢視與編輯屬性成長" @click="openModal('growth')" />
       </div>
     </div>
-    <BaseAttrModal v-if="showBaseAttrModal" :char-temp="charTemp" @close="showBaseAttrModal = false"
+
+    <!-- Error / Not Found State -->
+    <div v-else class="text-center py-10">
+      <p class="text-gray-500">找不到指定的角色模板。</p>
+    </div>
+
+    <!-- Modals -->
+    <BaseAttrModal v-if="activeModal === 'baseAttr'" :char-temp="charTemp" @close="activeModal = null"
       @save="saveBaseAttr" />
-    <SkillModal v-if="showSkillModal" :char-temp="charTemp" @close="showSkillModal = false" @save="saveSkill" />
-    <GrowthModal v-if="showGrowthModal" :char-temp="charTemp" @close="showGrowthModal = false" @save="saveGrowth" />
+    <SkillModal v-if="activeModal === 'skill'" :skills="charTemp.skills" @close="activeModal = null" @save="saveSkill" />
+    <GrowthModal v-if="activeModal === 'growth'" :char-temp="charTemp" @close="activeModal = null" @save="saveGrowth" />
 
   </div>
 </template>
@@ -70,112 +39,161 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getCharTempDetail, updateCharTempField, updateCharTempBaseAttr } from '@/api/char_temp'
+
+// API Services
+import {
+  getCharTempDetail,
+  updateCharTempBaseAttr,
+  updateCharTempSkills,
+  updateCharTempGrowth,
+} from '@/api/char_temp'
+
+// Components
 import ModalCard from '@/components/common/ModalCard.vue'
+import CharTempInfoCard from '@/components/chartemp/CharTempInfoCard.vue'
 import BaseAttrModal from '@/components/chartemp_modals/BaseAttrModal.vue'
 import SkillModal from '@/components/chartemp_modals/SkillModal.vue'
 import GrowthModal from '@/components/chartemp_modals/GrowthModal.vue'
 
+// Component State
 const route = useRoute()
 const charTemp = ref(null)
-const isEditing = ref(false)
-const editPayload = ref({
-  name: '',
-  rarity: 1,
-  description: '',
-  image_sm_url: '',
-  image_lg_url: '',
-})
-
-const showBaseAttrModal = ref(false)
-const showSkillModal = ref(false)
-const showGrowthModal = ref(false)
-
-onMounted(() => fetchCharTempDetail())
-
+const isLoading = ref(true)
+const activeModal = ref(null) // 'baseAttr', 'skill', 'growth', or null
+/**
+ * Fetches the character template details from the API.
+ */
 const fetchCharTempDetail = async () => {
-  charTemp.value = await getCharTempDetail(route.params.id)
-  resetEditPayload()
-}
-
-const resetEditPayload = () => {
-  editPayload.value = {
-    name: charTemp.value.name,
-    rarity: charTemp.value.rarity,
-    description: charTemp.value.description || '',
-    image_sm_url: charTemp.value.image_sm_url || '',
-    image_lg_url: charTemp.value.image_lg_url || '',
-  }
-}
-
-const startEdit = () => {
-  isEditing.value = true
-}
-
-const saveBaseAttr = async (payload) => {
+  isLoading.value = true
   try {
-    await updateCharTempBaseAttr(route.params.id, payload)
-    await fetchCharTempDetail()
-    showBaseAttrModal.value = false
-    // message.success('基礎屬性更新成功')
-  } catch (err) {
-    console.error(err)
-    // message.error('更新失敗')
+    charTemp.value = await getCharTempDetail(route.params.id)
+  } catch (error) {
+    console.error("Failed to fetch character details:", error)
+    charTemp.value = null
+    // Optionally show a toast notification for the error
+  } finally {
+    isLoading.value = false
   }
 }
 
-const saveEdit = async () => {
-  await updateCharTempField(route.params.id, { ...editPayload.value })
-  await fetchCharTempDetail()
-  isEditing.value = false
+/**
+ * Opens a modal by its name.
+ * @param {'baseAttr' | 'skill' | 'growth' | null} modalName
+ */
+const openModal = (modalName) => {
+  activeModal.value = modalName
+}
+/**
+ * A generic handler for saving data from modals.
+ * It calls the provided update function, refetches data, and closes the modal.
+ * @param {Function} updateFunction The API function to call for the update.
+ * @param {any} payload The data to be saved.
+ */
+const handleSave = async (updateFunction, payload) => {
+  try {
+    await updateFunction(route.params.id, payload)
+    await fetchCharTempDetail() // Reload data to reflect changes
+    activeModal.value = null // Close the active modal
+    // You can add a success notification here, e.g., message.success('更新成功')
+  } catch (error) {
+    console.error('Update failed:', error)
+    // You can add an error notification here, e.g., message.error('更新失敗')
+  }
 }
 
-const cancelEdit = () => {
-  resetEditPayload()
-  isEditing.value = false
-}
+// Specific save handlers for each modal, delegating to the generic handler.
+const saveBaseAttr = (payload) => handleSave(updateCharTempBaseAttr, payload)
+const saveSkill = (payload) => handleSave(updateCharTempSkills, payload)
+const saveGrowth = (payload) => handleSave(updateCharTempGrowth, payload)
 
-const openBaseAttrModal = () => {
-  showBaseAttrModal.value = true
-}
-
-const openSkillModal = () => {
-  showSkillModal.value = true
-}
-
-const openGrowthModal = () => {
-  showGrowthModal.value = true
-}
+// Lifecycle Hooks
+onMounted(fetchCharTempDetail)
 </script>
 
 
 
-<style scoped>
-.btn-blue {
-  @apply bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600;
-}
+<style scoped lang="scss">
+/* ============================================= */
+/*                 Button Styles                 */
+/* ============================================= */
 
 .btn-primary {
-  @apply bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600;
+  background-color: #3b82f6; /* bg-blue-500 */
+  color: white;
+  padding: 0.5rem 1rem; /* py-2 px-4 */
+  border-radius: 0.375rem; /* rounded */
+  transition: background-color 0.3s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #2563eb; /* hover:bg-blue-600 */
+  }
 }
 
 .btn-green {
-  @apply bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600;
+  background-color: #22c55e; /* bg-green-500 */
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: background-color 0.3s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #16a34a; /* hover:bg-green-600 */
+  }
 }
 
 .btn-gray {
-  @apply bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400;
+  background-color: #d1d5db; /* bg-gray-300 */
+  color: black;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: background-color 0.3s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #9ca3af; /* hover:bg-gray-400 */
+  }
 }
 
 .btn-red {
-  @apply bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600;
+  background-color: #ef4444; /* bg-red-500 */
+  color: white;
+  padding: 0.25rem 0.5rem; /* py-1 px-2 */
+  border-radius: 0.375rem;
+  transition: background-color 0.3s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #dc2626; /* hover:bg-red-600 */
+  }
 }
 
 .btn-sm {
-  @apply text-sm px-2 py-1;
+  font-size: 0.875rem; /* text-sm */
+  padding-left: 0.5rem; /* px-2 */
+  padding-right: 0.5rem;
+  padding-top: 0.25rem; /* py-1 */
+  padding-bottom: 0.25rem;
 }
 
+/* ============================================= */
+/*                  Form Styles                  */
+/* ============================================= */
+
 .input {
-  @apply border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400;
+  border: 1px solid #d1d5db; /* border-gray-300 */
+  border-radius: 0.375rem;
+  padding-left: 0.5rem; /* px-2 */
+  padding-right: 0.5rem;
+  padding-top: 0.25rem; /* py-1 */
+  padding-bottom: 0.25rem;
+  outline: none;
+  transition: box-shadow 0.2s;
+
+  &:focus {
+    box-shadow: 0 0 0 2px #60a5fa; /* ring-2 ring-blue-400 */
+  }
 }
+
 </style>

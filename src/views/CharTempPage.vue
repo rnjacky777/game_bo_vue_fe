@@ -1,16 +1,16 @@
 <template>
   <div class="p-6 space-y-4">
     <!-- Title -->
-    <h2 class="text-2xl font-bold">角色模板管理</h2>
+    <h1 class="text-2xl font-bold">角色模板管理</h1>
     <!-- Search & Filter -->
-    <div class="flex flex-wrap items-center gap-3 mb-4">
+    <div class="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg">
       <select v-model="searchBy" class="select select-bordered w-32 flex-shrink-0">
         <option value="id">ID 搜尋</option>
         <option value="name">名稱搜尋</option>
       </select>
 
       <input v-model="searchQuery" @keyup.enter="performSearch" type="text"
-        :placeholder="searchBy === 'id' ? '請輸入 ID' : '請輸入名稱'"
+        :placeholder="searchBy === 'id' ? '依據 ID 搜尋...' : '依據名稱搜尋...'"
           class="input input-bordered w-48 max-w-full" />
 
       <button @click="performSearch" :disabled="!searchQuery.trim()"
@@ -18,56 +18,60 @@
         搜尋
       </button>
 
-      <button @click="clearSearch" v-if="searchQuery.trim()" class="btn btn-sm btn-outline">
+      <button @click="clearSearch" v-if="searchQuery.trim()" class="btn btn-sm btn-ghost">
         清除搜尋
       </button>
 
-      <button class="btn btn-primary ml-auto" @click="openBulkAdd">
-        批次新增 (JSON)
-      </button>
-    </div>
-
-    <!-- 角色列表 -->
-    <div class="space-y-2">
-      <div v-for="char in chars" :key="char.id" class="p-4 bg-white shadow rounded flex justify-between items-center">
-        <div>
-          <p class="font-bold">{{ char.name }}</p>
-          <p class="text-sm text-gray-500">ID: {{ char.id }}</p>
-          <p class="text-sm text-gray-600">稀有度: {{ char.rarity }}</p>
-        </div>
-        <div class="flex gap-2">
-          <RouterLink :to="`/char-temp/${char.id}`" class="btn btn-sm btn-outline">詳細</RouterLink>
-          <button class="btn btn-sm btn-error" @click="removeChar(char.id)">刪除</button>
-        </div>
+      <div class="ml-auto flex gap-2">
+        <button class="btn btn-outline" @click="openBulkAdd">
+          批次新增 (JSON)
+        </button>
+        <button class="btn btn-primary" @click="addCharOpen = true">
+          新增角色模板
+        </button>
       </div>
     </div>
 
+    <!-- 角色列表 -->
+    <div v-if="chars.length > 0" class="space-y-2">
+      <div v-for="char in chars" :key="char.id" class="p-4 bg-white shadow rounded flex justify-between items-center">
+        <div class="flex-grow">
+          <p class="font-bold">{{ char.name }}</p>
+          <div class="flex items-center gap-4 text-sm text-gray-500 mt-1">
+            <span>ID: {{ char.id }}</span>
+            <span>稀有度: {{ char.rarity }}</span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <RouterLink :to="`/char-temp/${char.id}`" class="btn btn-sm btn-outline">詳細</RouterLink>
+          <button class="btn btn-sm btn-error" @click="removeChar(char)">刪除</button>
+        </div>
+      </div>
+    </div>
+    <div v-else class="text-center py-16 bg-gray-50 rounded-lg">
+      <p class="text-gray-500">找不到符合條件的角色模板。</p>
+    </div>
+
     <!-- 分頁 -->
-    <div class="flex items-center justify-between mt-4">
+    <div class="flex items-center justify-between pt-4">
       <p>第 {{ currentPage }} 頁</p>
       <div class="space-x-2">
         <button class="btn btn-sm" @click="prevPage" :disabled="currentPage === 1">
           上一頁
         </button>
-        <button class="btn btn-sm" @click="nextPage" :disabled="!lastId">下一頁</button>
+        <button class="btn btn-sm" @click="nextPage" :disabled="!hasMore">下一頁</button>
       </div>
     </div>
-
-    <!-- 新增角色模板按鈕 -->
-    <button @click="addCharOpen = true" class="bg-green-500 text-white px-4 py-2 rounded">
-      新增角色模板
-    </button>
-
 
     <!-- 新增角色模板 Modal -->
     <AddCharModal :visible="addCharOpen" @close="addCharOpen = false" @submitted="handleSubmit" />
 
     <!-- 確認刪除 Modal -->
-    <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div v-if="charToDelete" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div class="bg-white p-6 rounded shadow w-80">
-        <h3 class="text-lg font-bold mb-4">確認刪除角色模板？</h3>
+        <h3 class="text-lg font-bold mb-4">確認刪除 "{{ charToDelete.name }}"？</h3>
         <div class="flex justify-end space-x-2">
-          <button class="btn btn-sm" @click="showConfirmModal = false">取消</button>
+          <button class="btn btn-sm" @click="charToDelete = null">取消</button>
           <button class="btn btn-sm btn-error" @click="confirmDelete">確認刪除</button>
         </div>
       </div>
@@ -83,38 +87,66 @@ import {
 } from '@/api/char_temp'
 import AddCharModal from '@/components/AddCharModal.vue'
 
+const PAGE_SIZE = 10
 
-
-// Search
+// Search State
 const searchQuery = ref('')
-const filter = ref('')
-const filterOptions = [1, 2, 3, 4, 5] // 假設稀有度1~5
-const searchBy = ref('id')  // 預設為 id 搜尋
-// 角色資料
+const searchBy = ref('id')
+
+// Data State
 const chars = ref([])
+const isLoading = ref(false)
+
+// Pagination State
 const currentPage = ref(1)
-const lastId = ref(null)
-const prevId = ref(null)
-const isPrev = ref(false)
+const pageCursors = ref([null]) // Cursors for fetching pages. `pageCursors[i]` is the cursor for page `i+1`.
+const hasMore = ref(false)
 
-// Modal 控制
+// Modal State
 const addCharOpen = ref(false)
+const charToDelete = ref(null)
 
-// 刪除
-const showConfirmModal = ref(false)
-const deleteTargetId = ref(null)
+/**
+ * Loads characters for the current page using cursor-based pagination.
+ */
+const loadChars = async () => {
+  if (isLoading.value) return
+  isLoading.value = true
+  try {
+    const cursor = pageCursors.value[currentPage.value - 1]
+    const params = {
+      limit: PAGE_SIZE,
+      next_id: cursor,
+    }
+    const data = await getCharTemplates(params)
+    chars.value = data.char_temp_list || []
+    hasMore.value = !!data.last_id
 
+    // Store the cursor for the *next* page if it exists
+    if (hasMore.value) {
+      pageCursors.value[currentPage.value] = data.last_id
+    }
+  } catch (error) {
+    console.error('Failed to load characters:', error)
+    chars.value = []
+    hasMore.value = false
+    // You can add user-facing error notifications here
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/**
+ * Performs a search by ID or name and resets pagination for the results.
+ */
 const performSearch = async () => {
-  if (!searchQuery.value) {
-    // 搜尋欄為空，改用原本方式載入全部或依條件篩選
-    await fetchChars()
+  if (!searchQuery.value.trim()) {
+    await clearSearch()
     return
   }
 
   const params = {}
-
   if (searchBy.value === 'id') {
-    // 只允許數字 ID，非數字則不搜尋或提示
     if (!/^\d+$/.test(searchQuery.value.trim())) {
       alert('請輸入有效的數字ID')
       return
@@ -124,112 +156,93 @@ const performSearch = async () => {
     params.name = searchQuery.value.trim()
   }
 
-  // 如果有其他篩選條件也加進 params，像 rarity
-  if (filter.value) {
-    params.rarity = filter.value
-  }
+  isLoading.value = true
+  try {
+    const data = await getCharTemplates(params)
+    chars.value = data.char_temp_list || []
 
-  const data = await getCharTemplates(params)
-  chars.value = data.char_temp_list || []
-  lastId.value = data.last_id || null
-  prevId.value = null
-  currentPage.value = 1
+    // Reset pagination for the new search result set
+    currentPage.value = 1
+    pageCursors.value = [null, data.last_id]
+    hasMore.value = !!data.last_id
+  } catch (error) {
+    console.error('Search failed:', error)
+    chars.value = []
+    hasMore.value = false
+  } finally {
+    isLoading.value = false
+  }
 }
 
-const fetchChars = async () => {
-  const params = {
-    rarity: filter.value || undefined,
-    limit: 10,
-  }
-
-  if (isPrev.value && prevId.value) {
-    params.prev_id = prevId.value
-  } else if (lastId.value) {
-    params.next_id = lastId.value
-  }
-  console.log('fetchChars called')
-  const data = await getCharTemplates(params)
-  chars.value = data.char_temp_list
-  lastId.value = data.last_id || null
-  const firstCharId = data.char_temp_list?.[0]?.id ?? null
-  prevId.value = firstCharId !== null ? Math.max(firstCharId, 11) : null
-  isPrev.value = false
+/**
+ * Clears the search query and reloads the first page of all characters.
+ */
+const clearSearch = async () => {
+  searchQuery.value = ''
+  currentPage.value = 1
+  pageCursors.value = [null]
+  await loadChars()
 }
 
 const nextPage = () => {
-  if (lastId.value) {
+  if (hasMore.value) {
     currentPage.value++
-    isPrev.value = false
-    fetchChars()
+    loadChars()
   }
 }
 
 const prevPage = () => {
-  if (currentPage.value > 1 && prevId.value) {
+  if (currentPage.value > 1) {
     currentPage.value--
-    isPrev.value = true
-    fetchChars()
+    loadChars()
   }
 }
 
-const removeChar = (id) => {
-  deleteTargetId.value = id
-  showConfirmModal.value = true
+/**
+ * Sets the character to be deleted and opens the confirmation modal.
+ * @param {object} char - The character object to delete.
+ */
+const removeChar = (char) => {
+  charToDelete.value = char
 }
 
-const clearSearch = async () => {
-  searchQuery.value = ''
-  await fetchChars()
-}
-
+/**
+ * Confirms and executes the deletion of a character, then reloads the data.
+ */
 const confirmDelete = async () => {
-  if (deleteTargetId.value !== null) {
-    await deleteCharTemplate(deleteTargetId.value)
-    lastId.value = null
-    prevId.value = null
-    fetchChars()
+  if (!charToDelete.value) return
+
+  try {
+    await deleteCharTemplate(charToDelete.value.id)
+
+    // If the last item on a page is deleted, go to the previous page.
+    if (chars.value.length === 1 && currentPage.value > 1) {
+      currentPage.value--
+    }
+
+    await loadChars()
+  } catch (error) {
+    console.error('Failed to delete character:', error)
+  } finally {
+    charToDelete.value = null
   }
-  showConfirmModal.value = false
-  deleteTargetId.value = null
 }
 
+/**
+ * Handles submission from the AddCharModal by reloading the list from page 1.
+ */
 const handleSubmit = async () => {
-  await fetchChars()
+  addCharOpen.value = false
+  currentPage.value = 1
+  pageCursors.value = [null]
+  await loadChars()
 }
 
-const openBulkAdd = async () => {
-  // TODO: 實作批次新增
-  // const input = prompt('Paste JSON array of objects')
-  // try {
-  //   const json = JSON.parse(input)
-  //   await bulkAddChars(json)
-  //   fetchChars()
-  // } catch (e) {
-  //   alert('Invalid JSON')
-  // }
+const openBulkAdd = () => {
+  // TODO: Implement bulk add functionality
+  alert('批次新增功能尚未實作')
 }
 
-onMounted(() => {
-  fetchChars()
-})
+// Initial data load
+onMounted(loadChars)
 </script>
-
-<style scoped>
-.input,
-.select,
-.btn {
-  @apply border rounded px-3 py-2;
-}
-
-.btn-info {
-  @apply bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200;
-}
-
-.btn-error {
-  @apply bg-red-100 text-red-800 border-red-300 hover:bg-red-200;
-}
-
-.btn-outline {
-  @apply border-gray-300 text-gray-700 hover:bg-gray-100;
-}
-</style>
