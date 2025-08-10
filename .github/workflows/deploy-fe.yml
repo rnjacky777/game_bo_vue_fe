@@ -1,10 +1,16 @@
 name: Deploy Frontend to GCP
 
 on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
   # push:
   #   branches:
-  #     - main  # or your deployment branch
-  workflow_dispatch:
+  #     - main
+      # 你也可以放其他預設要自動部署的分支
 
 jobs:
   deploy:
