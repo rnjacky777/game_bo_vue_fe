@@ -13,8 +13,15 @@ export const searchItem = async (item_id) => {
     return res.data;
 };
 
-export const addItemApi = (item) => api.post('/items/AddItem', item);
-export const deleteItemApi = (id) => api.delete(`/items/RemoveItem`, { params: { item_id: id } });
-export const editItemApi = (itemId, data) => {
-    return api.put(`/items/edit_item/${itemId}`, data)
+export const addItemApi = async (item) => {
+    const res = await api.post('/items/AddItem', item);
+    return res.data;
+};
+export const deleteItemApi = async (id) => {
+    const res = await api.delete(`/items/RemoveItem`, { params: { item_id: id } });
+    return res.data;
+};
+export const editItemApi = async (itemId, data) => {
+    const res = await api.put(`/items/edit_item/${itemId}`, data);
+    return res.data;
 }

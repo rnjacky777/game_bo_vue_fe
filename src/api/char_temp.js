@@ -23,14 +23,6 @@ export const getCharTempDetail = async (id) => {
   return res.data;
 };
 
-/**
- * 搜尋角色模板
- * @param {number|string} query - 可用 id 或 name 搜尋
- */
-export const searchCharTemplate = async (query) => {
-  const res = await api.get(`/char-templates/search`, { params: { q: query } });
-  return res.data;
-};
 
 /**
  * 新增角色模板
@@ -41,14 +33,6 @@ export const addCharTemplate = async (item) => {
   return res.data;
 };
 
-/**
- * 更新角色模板說明（部分更新）
- * @param {Object} params - 需包含 id 和要更新的欄位（例如 description）
- */
-export const updateCharDescription = async ({ id, ...rest }) => {
-  const res = await api.patch(`/char-templates/${id}`, rest);
-  return res.data;
-};
 
 /**
  * 刪除角色模板
@@ -68,15 +52,7 @@ export const updateCharTempField = async (id, payload) => {
   const res = await api.patch(`/char-templates/info/${id}`, payload);
   return res.data;
 };
-// /**
-//  * 編輯角色模板（完整更新）
-//  * @param {number|string} id
-//  * @param {Object} payload - 更新的完整資料
-//  */
-// export const updateCharTempBaseAttr = async (id, payload) => {
-//   const res = await api.put(`/char-templates/${id}`, payload);
-//   return res.data;
-// };
+
 /**
  * 編輯角色模板（基礎數值 - 局部更新）
  * @param {number|string} id
@@ -86,12 +62,3 @@ export const updateCharTempBaseAttr = async (id, payload) => {
   const res = await api.patch(`/char-templates/stats/${id}`, payload);
   return res.data;
 };
-// /**
-//  * 編輯角色模板（完整更新）
-//  * @param {number|string} id
-//  * @param {Object} payload - 更新的完整資料
-//  */
-// export const updateCharTempField = async (id, payload) => {
-//   const res = await api.put(`/char-templates/${id}`, payload);
-//   return res.data;
-// };

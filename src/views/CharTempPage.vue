@@ -37,7 +37,6 @@
         </div>
         <div class="flex gap-2">
           <RouterLink :to="`/char-temp/${char.id}`" class="btn btn-sm btn-outline">詳細</RouterLink>
-          <button class="btn btn-sm btn-info" @click="openDescription(char)">說明</button>
           <button class="btn btn-sm btn-error" @click="removeChar(char.id)">刪除</button>
         </div>
       </div>
@@ -59,24 +58,6 @@
       新增角色模板
     </button>
 
-    <!-- 說明 Modal -->
-    <div v-if="selectedChar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded shadow-lg max-w-md w-full relative">
-        <h2 class="text-xl font-bold mb-2">編輯 {{ selectedChar.name }} 的說明</h2>
-
-        <textarea v-model="editedDescription" rows="5"
-          class="w-full p-2 border rounded resize-none text-sm text-gray-700 mb-4"></textarea>
-
-        <div class="flex justify-end gap-2">
-          <button class="btn btn-sm btn-outline" @click="selectedChar = null">取消</button>
-          <button class="btn btn-sm btn-success" @click="saveDescription">確認修改</button>
-        </div>
-
-        <button class="absolute top-2 right-2 text-gray-500 hover:text-black" @click="selectedChar = null">
-          ✖
-        </button>
-      </div>
-    </div>
 
     <!-- 新增角色模板 Modal -->
     <AddCharModal :visible="addCharOpen" @close="addCharOpen = false" @submitted="handleSubmit" />
@@ -98,41 +79,11 @@
 import { ref, onMounted } from 'vue'
 import {
   getCharTemplates,
-  searchCharTemplate,
   deleteCharTemplate,
-  updateCharDescription,
 } from '@/api/char_temp'
 import AddCharModal from '@/components/AddCharModal.vue'
 
-const selectedChar = ref(null)
-const editedDescription = ref('')
-const openDescription = (char) => {
-  selectedChar.value = char
-  editedDescription.value = char.description
-}
 
-const saveDescription = async () => {
-  if (!selectedChar.value) return
-
-  try {
-    await updateCharDescription({
-      id: selectedChar.value.id,
-      description: editedDescription.value,
-    })
-
-    // 更新本地資料（UI 同步）
-    selectedChar.value.description = editedDescription.value
-
-    const index = chars.value.findIndex((c) => c.id === selectedChar.value.id)
-    if (index !== -1) {
-      chars.value[index].description = editedDescription.value
-    }
-
-    selectedChar.value = null
-  } catch (error) {
-    console.error('更新失敗', error)
-  }
-}
 
 // Search
 const searchQuery = ref('')
