@@ -8,7 +8,7 @@ import api from './base';
  * @returns {Promise<{ last_id: number|null, char_temp_list: Array<{id: number, name: string, rarity?: number}> }>} 分頁資料和角色模板陣列
  */
 export const getCharTemplates = async (params = {}) => {
-  const res = await api.get('/char-templates', { params });
+  const res = await api.get('/char-templates/', { params });
   return res.data;
 };
 
@@ -26,7 +26,7 @@ export const getCharTempDetail = async (id) => {
  * @param {Object} payload - 角色模板資料
  */
 export const addCharTemplate = async (payload) => {
-  const res = await api.post('/char-templates', payload);
+  const res = await api.post('/char-templates/', payload);
   return res.data;
 };
 
