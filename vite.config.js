@@ -17,4 +17,12 @@ export default defineConfig({
       'vue': 'vue/dist/vue.esm-bundler.js'
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // 傳給 dart-sass 的選項
+        silenceDeprecations: ['legacy-js-api'],
+      },
+    },
+  },
 })

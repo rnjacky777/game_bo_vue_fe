@@ -7,7 +7,7 @@ import api from './base';
  * @param {Object} params - 篩選參數
  */
 export const getListEvent = async (params = {}) => {
-    const res = await api.get('/event/list-event', { params });
+    const res = await api.get('/events/list-event', { params });
     return res.data;
 };
 
@@ -16,7 +16,7 @@ export const getListEvent = async (params = {}) => {
  * @param {number|string} event_id
  */
 export const getEventDetail = async (event_id) => {
-    const res = await api.get(`/event/detail/${event_id}`);
+    const res = await api.get(`/events/detail/${event_id}`);
     return res.data;
 };
 
@@ -25,7 +25,7 @@ export const getEventDetail = async (event_id) => {
  * @param {number|string} event_id
  */
 export const searchEvent = async (event_id) => {
-    const res = await api.get(`/event/${event_id}`);
+    const res = await api.get(`/events/${event_id}`);
     return res.data;
 };
 
@@ -34,7 +34,7 @@ export const searchEvent = async (event_id) => {
  * @param {Object} item - 事件資料
  */
 export const addEventApi = async (item) => {
-    const res = await api.post('/event/CreateEvent', item);
+    const res = await api.post('/events/CreateEvent', item);
     return res.data;
 };
 
@@ -43,7 +43,7 @@ export const addEventApi = async (item) => {
  * @param {Object} params - 包含 event_id 與其餘更新資料
  */
 export const updateEventDescription = async ({ event_id, ...rest }) => {
-    const res = await api.put(`/event/${event_id}`, rest);
+    const res = await api.put(`/events/${event_id}`, rest);
     return res.data;
 };
 
@@ -52,7 +52,7 @@ export const updateEventDescription = async ({ event_id, ...rest }) => {
  * @param {number|string} id
  */
 export const deleteEventApi = async (id) => {
-    const res = await api.delete(`/event/${id}`);
+    const res = await api.delete(`/events/${id}`);
     return res.data;
 };
 
@@ -63,7 +63,7 @@ export const deleteEventApi = async (id) => {
  * @param {number|string} result_id
  */
 export const getResultDetail = async (result_id) => {
-    const res = await api.get(`/event/result/${result_id}`);
+    const res = await api.get(`/events/result/${result_id}`);
     return res.data;
 };
 
@@ -72,7 +72,7 @@ export const getResultDetail = async (result_id) => {
  * @param {Object} item
  */
 export const createEventResult = async (item) => {
-    const res = await api.post('/event/AddEventResult', item);
+    const res = await api.post('/events/AddEventResult', item);
     return res.data;
 };
 
@@ -82,7 +82,7 @@ export const createEventResult = async (item) => {
  * @param {Object} payload
  */
 export const editEventResult = async (result_id, payload) => {
-    const res = await api.put(`/event/result/${result_id}`, payload);
+    const res = await api.put(`/events/result/${result_id}`, payload);
     return res.data;
 };
 
@@ -91,7 +91,7 @@ export const editEventResult = async (result_id, payload) => {
  * @param {number|string} event_result_id
  */
 export const deleteEventResult = async (event_result_id) => {
-    const res = await api.delete(`/event/result/${event_result_id}`);
+    const res = await api.delete(`/events/result/${event_result_id}`);
     return res.data;
 };
 
@@ -102,7 +102,7 @@ export const deleteEventResult = async (event_result_id) => {
  * @param {Object} item
  */
 export const AddItemToResult = async (item) => {
-    const res = await api.post('/event/add-event-result-item', item);
+    const res = await api.post('/events/add-event-result-item', item);
     return res.data;
 };
 
@@ -112,7 +112,7 @@ export const AddItemToResult = async (item) => {
  * @param {number|string} item_id
  */
 export const deleteItemFromResult = async (result_id, item_id) => {
-    const res = await api.delete(`/event/result/${result_id}/items/${item_id}`);
+    const res = await api.delete(`/events/result/${result_id}/items/${item_id}`);
     return res.data;
 };
 
@@ -123,7 +123,7 @@ export const deleteItemFromResult = async (result_id, item_id) => {
  * @param {number} probability
  */
 export const editItemProbability = async (resultId, itemId, probability) => {
-    const res = await api.put(`/event/result/${resultId}/items/${itemId}`, { probability });
+    const res = await api.put(`/events/result/${resultId}/items/${itemId}`, { probability });
     return res.data;
 };
 

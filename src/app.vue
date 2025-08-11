@@ -9,6 +9,7 @@
         <li><RouterLink to="/item" class="block p-2 rounded hover:bg-gray-700" active-class="bg-gray-700 text-yellow-300">物品管理</RouterLink></li>
         <li><RouterLink to="/monster" class="block p-2 rounded hover:bg-gray-700" active-class="bg-gray-700 text-yellow-300">怪物管理</RouterLink></li>
         <li><RouterLink to="/event" class="block p-2 rounded hover:bg-gray-700" active-class="bg-gray-700 text-yellow-300">事件管理</RouterLink></li>
+        <li><RouterLink to="/char-temp" class="block p-2 rounded hover:bg-gray-700" active-class="bg-gray-700 text-yellow-300">角色模板管理</RouterLink></li>
         <!-- <li><RouterLink to="/template" class="block p-2 rounded hover:bg-gray-700" active-class="bg-gray-700 text-yellow-300">模板頁面</RouterLink></li> -->
       </ul>
     </div>
