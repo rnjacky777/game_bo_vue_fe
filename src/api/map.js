@@ -10,7 +10,6 @@ export const getMaps = async (params = { limit: 20 }) => {
   return res.data;
 };
 
-
 /**
  * 取得單一地圖詳細資料
  * @param {number} id 地圖 ID

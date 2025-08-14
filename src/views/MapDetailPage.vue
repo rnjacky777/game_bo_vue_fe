@@ -28,12 +28,36 @@
     </div>
 
     <!-- Modals -->
-    <MapEventsModal v-if="activeModal === 'events'" :mapId="selectedMapId" :currentEvents="map.events" :allEvents="allAvailableEvents"
-       @close="activeModal = null" @saved="saveEvents" />
+    <MapEventsModal v-if="activeModal === 'events'" :currentEvents="map.events" @close="activeModal = null"
+      @saved="saveEvents" />
 
-    <MapConnectionsModal v-if="activeModal === 'connections'" :mapId="map.id" :currentConnections="map.neighbors" @close="activeModal = null"
-      @save="saveConnections" />
+    <MapConnectionsModal v-if="activeModal === 'connections'" :mapId="map.id" :currentConnections="map.neighbors"
+      @close="activeModal = null" @save="saveConnections" />
+    <AddMapAreaModal v-if="showAddAreaModal" :newArea="newArea" @confirm="confirmAddArea" @cancel="cancelAddArea" />
     <!-- <MapSettingsModal v-if="activeModal === 'settings'" :map="map" @close="activeModal = null" @save="saveSettings" /> -->
+    <!-- Map Area 列表 -->
+    <div class="mt-6">
+      <h3 class="section-title">地圖區域列表</h3>
+
+      <ul v-if="map?.map_areas?.length > 0" class="area-list">
+        <li v-for="area in map.map_areas" :key="area.id" class="area-item">
+          <div class="area-info">
+            <span class="area-id">ID: {{ area.id }}</span>
+            <span class="area-name">{{ area.name }}</span>
+          </div>
+          <div class="area-actions">
+            <RouterLink :to="`/maps/${map.id}/map-area/${area.id}`" class="btn-outline">詳情</RouterLink>
+            <button @click="prepareRemove(area.id)" class="btn-red">刪除</button>
+          </div>
+        </li>
+      </ul>
+
+      <p v-else class="empty-text">暫無地圖區域，請新增。</p>
+    </div>
+    <div class="flex justify-end mt-4">
+      <button class="btn-blue px-5 py-2" @click="showAddAreaModal = true">+ 新增 Map Area</button>
+    </div>
+
   </div>
 </template>
 
@@ -41,14 +65,16 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
+
 // API Services
 import {
   getMapById,
   updateMapEvents,
   updateMapConnections,
 } from '@/api/map'
-
+import { createMapArea, deleteMapArea } from '@/api/map_area'
 // Components
+import AddMapAreaModal from '@/components/map_detail/AddMapAreaModal.vue'
 import ModalCard from '@/components/common/ModalCard.vue'
 import MapInfoCard from '@/components/map_detail/MapInfoCard.vue'
 import MapEventsModal from '@/components/map_detail/MapEventsModal.vue'
@@ -62,17 +88,54 @@ const isLoading = ref(true)
 const activeModal = ref(null) // 'events', 'connections', 'settings', or null
 
 // 取得地圖詳細資料
+const showAddAreaModal = ref(false);
+const newArea = ref({ name: '', map_id: map.id });
+const areaToDelete = ref(null);
+
+const prepareRemove = (areaId) => {
+  if (!areaId) return;
+  areaToDelete.value = areaId;
+
+  // 這裡可以改成 modal
+  if (confirm('確定要刪除這個地圖區域嗎？')) {
+    handleRemove();
+  } else {
+    areaToDelete.value = null;
+  }
+};
+
+const handleRemove = async () => {
+  try {
+    await deleteMapArea(map.value.id, areaToDelete.value);
+    await fetchMapDetail(); // 刪除後重新載入地圖資訊
+    areaToDelete.value = null;
+  } catch (error) {
+    console.error('刪除地圖區域失敗', error);
+  }
+};
+const cancelAddArea = () => {
+  showAddAreaModal.value = false;
+  newArea.value = { name: '', map_id: map.value.id };
+};
+
+const confirmAddArea = async (areaFromModal) => {
+  // 呼叫 API 新增 Map Area
+  console.log(map.value.id)
+  console.log(areaFromModal)
+  await createMapArea(map.value.id, areaFromModal);
+  await fetchMapDetail(); // 重新載入地圖資訊
+  cancelAddArea();
+};
 const fetchMapDetail = async () => {
   isLoading.value = true
   try {
-    map.value = await getMapById(route.params.id)
+    map.value = await getMapById(route.params.mapId)
   } catch (error) {
     console.error("Failed to fetch map details:", error)
     map.value = null
   } finally {
     isLoading.value = false
   }
-  console.log(map.value)
 }
 
 // 開啟 modal
@@ -83,7 +146,7 @@ const openModal = (modalName) => {
 // 泛用儲存函式，呼叫對應 API，更新後重新抓取資料並關閉 modal
 const handleSave = async (updateFunction, payload) => {
   try {
-    await updateFunction(route.params.id, payload)
+    await updateFunction(route.params.mapId, payload)
     await fetchMapDetail()
     activeModal.value = null
   } catch (error) {
@@ -94,7 +157,7 @@ const handleSave = async (updateFunction, payload) => {
 // 各 modal 的儲存函式，代理到 handleSave
 const saveEvents = async (payload) => {
   try {
-    await updateMapEvents(route.params.id, payload)
+    await updateMapEvents(route.params.mapId, payload)
     // 儲存成功後要關閉 modal，並刷新資料等
     activeModal.value = null
     await fetchMapDetail() // 或其他刷新函數
@@ -107,7 +170,7 @@ const saveEvents = async (payload) => {
 const saveConnections = async (payload) => {
   try {
     console.log('run saveConnections')
-    await updateMapConnections(route.params.id, payload)
+    await updateMapConnections(route.params.mapId, payload)
     activeModal.value = null
     await fetchMapDetail()
   } catch (error) {
@@ -119,5 +182,102 @@ onMounted(fetchMapDetail)
 </script>
 
 <style scoped lang="scss">
-/* (此處可沿用你之前的樣式) */
+.section-title {
+  font-weight: bold;
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.area-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  .area-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #f9fafb;
+    }
+
+    .area-info {
+      display: flex;
+      gap: 0.5rem;
+
+      .area-id {
+        font-weight: 500;
+        color: #374151;
+      }
+
+      .area-name {
+        background: #e5e7eb;
+        color: #6b7280;
+        font-size: 0.75rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.25rem;
+      }
+    }
+
+    .area-actions {
+      display: flex;
+      gap: 0.5rem;
+
+      .btn-outline {
+        border: 1px solid #3b82f6;
+        color: #3b82f6;
+        background: transparent;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        text-decoration: none;
+
+        &:hover {
+          background: #3b82f6;
+          color: #fff;
+        }
+      }
+
+      .btn-red {
+        background: #ef4444;
+        color: #fff;
+        border: none;
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+
+        &:hover {
+          background: #dc2626;
+        }
+      }
+    }
+  }
+}
+
+.empty-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.btn-blue {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+
+  &:hover {
+    background: #2563eb;
+  }
+}
 </style>

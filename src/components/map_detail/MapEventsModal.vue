@@ -78,7 +78,6 @@ import { ref, computed, watch } from 'vue'
 import { searchEvent } from '@/api/event'
 
 const props = defineProps({
-    mapId: { type: Number, required: true },
     currentEvents: { type: Array, default: () => [] },
     allEvents: { type: Array, default: () => [] },
 })
