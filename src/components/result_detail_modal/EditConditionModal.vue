@@ -68,7 +68,8 @@ const props = defineProps({
 const conditionOptions = [
   { value: 'hp_above', label: 'HP 大於' },
   { value: 'level_above', label: '等級大於' },
-  { value: 'has_item', label: '擁有道具' }
+  { value: 'has_item', label: '擁有道具' },
+  { value: 'speed_above', label: '速度大於' }
 ];
 const emit = defineEmits(['update:modelValue', 'close', 'save']);
 
