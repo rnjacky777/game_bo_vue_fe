@@ -9,6 +9,9 @@ import EventDetail from '../views/EventDetailPage.vue' // 可加上 event 詳情
 import ResultDetail from '../views/ResultDetailPage.vue'
 import CharTempPage from '../views/CharTempPage.vue'
 import CharTempDetailPage from '../views/CharTempDetailPage.vue'
+import MapPage from '../views/MapPage.vue'
+import MapDetailPage from '../views/MapDetailPage.vue'
+import MapAreaDetailPage from '../views/MapAreaDetailPage.vue'
 
 
 
@@ -22,7 +25,17 @@ const routes = [
   { path: '/event/:id', component: EventDetail, props: true }, // 新增事件詳情頁面
   { path: '/char-temp', component: CharTempPage },
   { path: '/char-temp/:id', component: CharTempDetailPage, props: true },
-  
+  { path: '/maps', component: MapPage },
+  {
+    path: '/maps/:mapId',
+    component: MapDetailPage,
+    props: true
+  },
+  {
+    path: '/maps/:mapId/map-area/:id',
+    component: MapAreaDetailPage,
+    props: route => ({ mapId: Number(route.params.mapId), areaId: Number(route.params.id) })
+  }
 ]
 
 const router = createRouter({
